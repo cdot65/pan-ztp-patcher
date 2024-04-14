@@ -1,5 +1,4 @@
 import logging
-import os
 import paramiko
 import sys
 import time
@@ -8,28 +7,6 @@ import xml.etree.ElementTree as ET
 
 
 logger = logging.getLogger(__name__)
-
-
-# Configure file handler for debug level
-log_directory = os.path.expanduser("~/upgrade")
-os.makedirs(log_directory, exist_ok=True)
-log_file = os.path.join(os.getcwd(), "debug.log")
-file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.DEBUG)
-file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(file_formatter)
-
-# Configure console handler for info level
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter("%(message)s")
-console_handler.setFormatter(console_formatter)
-
-# Create logger and add handlers
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
 
 
 def change_password(hostname, username, old_password, new_password):

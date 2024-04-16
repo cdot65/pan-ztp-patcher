@@ -5,12 +5,6 @@ import time
 import urllib.request
 import xml.etree.ElementTree as ET
 
-from pan_ztp_patcher.constants import (
-    MONITOR_JOB_STATUS_TIMEOUT,
-    SCP_IMPORT_TIMEOUT,
-)  # noqa: E501
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -41,13 +35,17 @@ def change_firewall_password(
         change_firewall_password("192.168.1.1", "admin", "pan_password_default", "pan_password")
     """
 
+    logger.info("=" * 79)
+    logger.info("Changing firewall password...")
+    logger.info("=" * 79)
+
     # Create an SSH client
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
         # Connect to the firewall
-        logging.debug("Connecting to {}...".format(pan_hostname))
+        logger.debug("Connecting to {}...".format(pan_hostname))
         client.connect(
             pan_hostname, username=pan_username, password=pan_password_default
         )
@@ -57,7 +55,7 @@ def change_firewall_password(
         shell = client.invoke_shell()
 
         # Wait for the prompt
-        logging.debug("Waiting for the prompt...")
+        logger.debug("Waiting for the prompt...")
         time.sleep(2)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
@@ -86,7 +84,7 @@ def change_firewall_password(
         logger.debug("Received output: {}".format(output))
 
         # Close the SSH connection
-        logging.debug("Closing the SSH connection...")
+        logger.debug("Closing the SSH connection...")
         client.close()
         logger.info("Password changed successfully.")
 
@@ -123,6 +121,10 @@ def retrieve_api_key(
         api_key = retrieve_api_key("192.168.1.1", "admin", "password")
     """
 
+    logger.info("=" * 79)
+    logger.info("Retrieving API key...")
+    logger.info("=" * 79)
+
     try:
         # Construct the API URL
         url = "https://{}/api/?type=keygen&user={}&password={}".format(
@@ -131,25 +133,25 @@ def retrieve_api_key(
         logger.debug("API URL: {}".format(url))
 
         # Create an HTTPS request with SSL verification disabled
-        logging.debug("Retrieving API key...")
+        logger.debug("Retrieving API key...")
         request = urllib.request.Request(url)
         response = urllib.request.urlopen(
             request, context=urllib.request.ssl._create_unverified_context()
         )
-        logging.debug("Received response: {}".format(response))
+        logger.debug("Received response: {}".format(response))
 
         # Read the response content
-        logging.debug("Reading response content...")
+        logger.debug("Reading response content...")
         response_content = response.read().decode("utf-8")
         logger.debug("Received response: {}".format(response_content))
 
         # Parse the XML response
-        logging.debug("Parsing XML response...")
+        logger.debug("Parsing XML response...")
         root = ET.fromstring(response_content)
         logger.debug("Root element: {}".format(root.tag))
 
         # Extract the API key from the response
-        logging.debug("Extracting API key...")
+        logger.debug("Extracting API key...")
         api_key_element = root.find("./result/key")
         if api_key_element is not None:
             api_key = api_key_element.text
@@ -202,6 +204,10 @@ def import_content_via_scp(
         import_content_via_scp("192.168.1.1", "admin", "password", "192.168.1.2", "/var/tmp/", "content.txt") # noqa: E501
     """
 
+    logger.info("=" * 79)
+    logger.info("Importing content via SCP...")
+    logger.info("=" * 79)
+
     # Create an SSH client
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -210,8 +216,10 @@ def import_content_via_scp(
         # Connect to the firewall
         logger.debug("Connecting to {}...".format(pan_hostname))
         client.connect(
-            pan_hostname, username=pan_username, password=pan_password
-        )  # noqa: E501
+            pan_hostname,
+            username=pan_username,
+            password=pan_password,
+        )
         logger.info("Connected to {} successfully.".format(pan_hostname))
 
         # Create an interactive shell
@@ -237,8 +245,8 @@ def import_content_via_scp(
         logger.debug("Received output: {}".format(output))
 
         # Check if the host authenticity prompt appears
-        logging.debug("Checking for host authenticity prompt...")
-        if "Are you sure you want to continue connecting" in output:
+        logger.debug("Checking for host authenticity prompt...")
+        if "Please type 'yes', 'no' or the fingerprint" in output:
             logger.debug("Sending 'yes' to the prompt...")
             shell.send("yes\n")
             time.sleep(2)
@@ -246,7 +254,8 @@ def import_content_via_scp(
             logger.debug("Received output: {}".format(output))
 
         # Send the password for pi@
-        logging.debug("Sending password for pi@{}...".format(pi_hostname))
+        logger.debug("Sending password for pi@{}...".format(pi_hostname))
+        time.sleep(2)
         shell.send(pi_password + "\n")
         time.sleep(2)
         output = shell.recv(1024).decode("utf-8")
@@ -255,18 +264,22 @@ def import_content_via_scp(
         # Wait for the completion prompt
         logger.debug("Waiting for the completion prompt...")
         start_time = time.time()
-        while "saved" not in output:
-            if time.time() - start_time > SCP_IMPORT_TIMEOUT:
+        while True:
+            if time.time() - start_time > 120:
                 logger.error(
                     "Timeout occurred while waiting for the completion prompt."
                 )
                 break
             output += shell.recv(1024).decode("utf-8")
             logger.debug("Received output: {}".format(output))
+            if "already exists" in output:
+                logger.info("Content file already exists on the firewall.")
+                break
+            elif "100%" in output and "ETA" not in output:
+                logger.debug("SCP import content completed successfully.")
+                logger.info("SCP import content completed successfully.")
+                break
             time.sleep(1)
-
-        logger.debug("SCP import content completed successfully.")
-        logger.info("SCP import content completed successfully.")
 
         # Close the SSH connection
         client.close()
@@ -304,6 +317,10 @@ def install_content_via_api(
         job_id = install_content_via_api("192.168.1.1", "api_key", "content.txt")
     """
 
+    logger.info("=" * 79)
+    logger.info("Installing content via API...")
+    logger.info("=" * 79)
+
     try:
         # Construct the API URL
         url = "https://{}/api/?type=op&cmd={}".format(
@@ -321,19 +338,19 @@ def install_content_via_api(
         request.add_header("X-PAN-KEY", api_key)
 
         # Send the API request
-        logging.debug("Sending API request...")
+        logger.debug("Sending API request...")
         response = urllib.request.urlopen(
             request, context=urllib.request.ssl._create_unverified_context()
         )
-        logging.debug("Received response: {}".format(response))
+        logger.debug("Received response: {}".format(response))
 
         # Read the response content
-        logging.debug("Reading response content...")
+        logger.debug("Reading response content...")
         response_content = response.read().decode("utf-8")
         logger.debug("Received response: {}".format(response_content))
 
         # Parse the XML response
-        logging.debug("Parsing XML response...")
+        logger.debug("Parsing XML response...")
         root = ET.fromstring(response_content)
         logger.debug("Root element: {}".format(root.tag))
 
@@ -383,6 +400,10 @@ def monitor_job_status(pan_hostname, api_key, job_id):
         monitor_job_status("192.168.1.1", "api_key", "job_id")
     """
 
+    logger.info("=" * 79)
+    logger.info("Monitoring job status...")
+    logger.info("=" * 79)
+
     start_time = time.time()
 
     while True:
@@ -401,20 +422,20 @@ def monitor_job_status(pan_hostname, api_key, job_id):
             request.add_header("X-PAN-KEY", api_key)
 
             # Send the API request
-            logging.debug("Sending job monitoring request...")
+            logger.debug("Sending job monitoring request...")
             response = urllib.request.urlopen(
                 request,
                 context=urllib.request.ssl._create_unverified_context(),  # noqa: E501
             )
-            logging.debug("Received response: {}".format(response))
+            logger.debug("Received response: {}".format(response))
 
             # Read the response content
-            logging.debug("Reading response content...")
+            logger.debug("Reading response content...")
             response_content = response.read().decode("utf-8")
             logger.debug("Received response: {}".format(response_content))
 
             # Parse the XML response
-            logging.debug("Parsing XML response...")
+            logger.debug("Parsing XML response...")
             root = ET.fromstring(response_content)
             logger.debug("Root element: {}".format(root.tag))
 
@@ -430,7 +451,8 @@ def monitor_job_status(pan_hostname, api_key, job_id):
                             logger.info("Job completed successfully.")
                             return
                         else:
-                            logger.error("Job completed with an error.")
+                            logger.error("Job completed with an error.")  # noqa: E501
+                            logger.error(job_result)
                             sys.exit(1)
                     else:
                         logger.error("Job result not found in the response.")
@@ -440,7 +462,7 @@ def monitor_job_status(pan_hostname, api_key, job_id):
                 sys.exit(1)
 
             # Check the timeout
-            if time.time() - start_time > MONITOR_JOB_STATUS_TIMEOUT:
+            if time.time() - start_time > 120:
                 logger.error("Job monitoring timed out.")
                 sys.exit(1)
 

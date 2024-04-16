@@ -1,16 +1,8 @@
+# app.py
+
 import argparse
 import os
-
 from dotenv import load_dotenv
-from pan_ztp_patcher.constants import (
-    DEFAULT_CONTENT_FILE,
-    DEFAULT_CONTENT_PATH,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_PAN_HOSTNAME,
-    DEFAULT_PAN_PASSWORD,
-    DEFAULT_PAN_PASSWORD_DEFAULT,
-    DEFAULT_PAN_USERNAME,
-)
 from pan_ztp_patcher.utils import setup_logging
 from pan_ztp_patcher.ztp_patcher import (
     change_firewall_password,
@@ -26,9 +18,9 @@ def main():
     Main function that orchestrates the PAN-OS firewall content update process.
 
     This function performs the following steps:
-    1. Loads environment variables from the .env file.
-    2. Configures logging.
-    3. Parses command-line arguments.
+    1. Configures logging.
+    2. Parses command-line arguments.
+    3. Loads any .env file
     4. Validates the content_path argument.
     5. Retrieves the API key from the PAN-OS firewall.
     6. Imports content using SCP.
@@ -39,9 +31,6 @@ def main():
         None
     """
 
-    # Load environment variables from .env file
-    load_dotenv()
-
     # Configure logging
     logger = setup_logging()
 
@@ -50,82 +39,76 @@ def main():
         description="Update content version on PAN-OS firewalls",
     )
     parser.add_argument(
+        "--env_file",
+        default=".env",
+        help="Path to the .env file (default: .env)",
+    )
+    parser.add_argument(
         "--pi_hostname",
-        default=os.environ.get("PI_HOSTNAME"),
-        required=True,
         help="Raspberry Pi hostname or IP address",
     )
     parser.add_argument(
         "--pi_username",
-        default=os.environ.get("PI_USERNAME"),
-        required=True,
         help="Raspberry Pi username",
     )
     parser.add_argument(
         "--pi_password",
-        default=os.environ.get("PI_PASSWORD"),
-        required=True,
         help="Raspberry Pi password",
     )
-    # Parse command-line arguments
     parser.add_argument(
         "--pan_hostname",
-        default=os.environ.get("PAN_HOSTNAME", DEFAULT_PAN_HOSTNAME),
-        help=f"PAN-OS firewall hostname or IP address (default: {DEFAULT_PAN_HOSTNAME})",  # noqa E501
+        help="PAN-OS firewall hostname or IP address",
     )
     parser.add_argument(
         "--pan_username",
-        default=os.environ.get("PAN_USERNAME", DEFAULT_PAN_USERNAME),
-        help=f"PAN-OS firewall username (default: {DEFAULT_PAN_USERNAME})",
+        help="PAN-OS firewall username",
     )
     parser.add_argument(
         "--pan_password",
-        default=os.environ.get("PAN_PASSWORD", DEFAULT_PAN_PASSWORD),
-        help=f"PAN-OS firewall password (default: {DEFAULT_PAN_PASSWORD})",
+        help="PAN-OS firewall password",
     )
     parser.add_argument(
         "--pan_password_default",
-        default=os.environ.get(
-            "PAN_PASSWORD_DEFAULT", DEFAULT_PAN_PASSWORD_DEFAULT
-        ),  # noqa E501
-        help=f"Original default PAN-OS firewall password (default: {DEFAULT_PAN_PASSWORD_DEFAULT})",  # noqa E501
+        help="Original default PAN-OS firewall password",
     )
     parser.add_argument(
         "--content_path",
-        default=os.environ.get("CONTENT_PATH", DEFAULT_CONTENT_PATH),
-        help=f"Content path on the Raspberry Pi (default: {DEFAULT_CONTENT_PATH})",  # noqa E501
+        help="Content path on the Raspberry Pi",
     )
     parser.add_argument(
         "--content_file",
-        default=os.environ.get("CONTENT_FILE", DEFAULT_CONTENT_FILE),
-        help=f"Content file name (default: {DEFAULT_CONTENT_FILE})",
+        help="Content file name",
     )
     parser.add_argument(
         "--log_level",
-        default=os.environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL),
+        default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help=f"Set the log level (default: {DEFAULT_LOG_LEVEL})",
+        help="Set the log level (default: INFO)",
     )
 
     args = parser.parse_args()
 
-    # Validate the content_path argument
-    content_path = args.content_path
-    if not os.path.isdir(content_path):
-        parser.error(f"Invalid content path: {content_path}")
+    # Load environment variables from the specified .env file
+    load_dotenv(args.env_file)
 
     # Firewall connection details
-    pan_hostname = args.pan_hostname
-    pan_username = args.pan_username
-    pan_password = args.pan_password
-    pan_password_default = args.pan_password_default
+    pan_hostname = args.pan_hostname or os.getenv("PAN_HOSTNAME")
+    pan_username = args.pan_username or os.getenv("PAN_USERNAME")
+    pan_password = args.pan_password or os.getenv("PAN_PASSWORD")
+    pan_password_default = args.pan_password_default or os.getenv(
+        "PAN_PASSWORD_DEFAULT"
+    )
 
     # Raspberry Pi connection details
-    pi_hostname = args.pi_hostname
-    pi_username = args.pi_username
-    pi_password = args.pi_password
-    content_path = args.content_path
-    content_file = args.content_file
+    pi_hostname = args.pi_hostname or os.getenv("PI_HOSTNAME")
+    pi_username = args.pi_username or os.getenv("PI_USERNAME")
+    pi_password = args.pi_password or os.getenv("PI_PASSWORD")
+    content_path = args.content_path or os.getenv("CONTENT_PATH")
+    content_file = args.content_file or os.getenv("CONTENT_FILE")
+
+    # Validate the content_path argument
+    if not os.path.isdir(content_path):
+        parser.error(f"Invalid content path: {content_path}")
 
     # Change the default firewall password
     change_firewall_password(
@@ -142,7 +125,7 @@ def main():
         pan_password,
     )
     if api_key:
-        logger.info("API Key: {}".format(api_key))
+        logger.info("API Key retrieved successfully.")
     else:
         logger.error("Failed to retrieve the API key.")
         return

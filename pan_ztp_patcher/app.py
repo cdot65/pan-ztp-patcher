@@ -1,108 +1,145 @@
 import argparse
-import logging
-from logging.handlers import RotatingFileHandler
+import os
+
+from dotenv import load_dotenv
+from pan_ztp_patcher.constants import (
+    DEFAULT_CONTENT_FILE,
+    DEFAULT_CONTENT_PATH,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_PAN_HOSTNAME,
+    DEFAULT_PAN_PASSWORD,
+    DEFAULT_PAN_PASSWORD_DEFAULT,
+    DEFAULT_PAN_USERNAME,
+)
+from pan_ztp_patcher.utils import setup_logging
 from pan_ztp_patcher.ztp_patcher import (
-    change_password,
-    get_api_key,
-    scp_import_content,
-    send_api_request,
-    job_monitor,
+    change_firewall_password,
+    import_content_via_scp,
+    install_content_via_api,
+    monitor_job_status,
+    retrieve_api_key,
 )
 
 
 def main():
+    """
+    Main function that orchestrates the PAN-OS firewall content update process.
+
+    This function performs the following steps:
+    1. Loads environment variables from the .env file.
+    2. Configures logging.
+    3. Parses command-line arguments.
+    4. Validates the content_path argument.
+    5. Retrieves the API key from the PAN-OS firewall.
+    6. Imports content using SCP.
+    7. Sends an API request to install the content.
+    8. Monitors the job status.
+
+    Returns:
+        None
+    """
+
+    # Load environment variables from .env file
+    load_dotenv()
+
     # Configure logging
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
-    # Configure file handler for debug level
-    file_handler = RotatingFileHandler(
-        "debug.log", maxBytes=5 * 1024 * 1024, backupCount=10
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s"
-    )  # noqa E501
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
-
-    # Configure console handler for info level
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_formatter = logging.Formatter("%(message)s")
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
+    logger = setup_logging()
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
         description="Update content version on PAN-OS firewalls",
     )
     parser.add_argument(
-        "-H",
-        "--hostname",
+        "--pi_hostname",
+        default=os.environ.get("PI_HOSTNAME"),
         required=True,
-        help="Firewall hostname or IP address",
+        help="Raspberry Pi hostname or IP address",
     )
     parser.add_argument(
-        "-u",
-        "--username",
+        "--pi_username",
+        default=os.environ.get("PI_USERNAME"),
         required=True,
-        help="Firewall username",
+        help="Raspberry Pi username",
     )
     parser.add_argument(
-        "-o",
-        "--old-password",
+        "--pi_password",
+        default=os.environ.get("PI_PASSWORD"),
         required=True,
-        help="Firewall old password",
+        help="Raspberry Pi password",
+    )
+    # Parse command-line arguments
+    parser.add_argument(
+        "--pan_hostname",
+        default=os.environ.get("PAN_HOSTNAME", DEFAULT_PAN_HOSTNAME),
+        help=f"PAN-OS firewall hostname or IP address (default: {DEFAULT_PAN_HOSTNAME})",  # noqa E501
     )
     parser.add_argument(
-        "-n",
-        "--new-password",
-        required=True,
-        help="Firewall new password",
+        "--pan_username",
+        default=os.environ.get("PAN_USERNAME", DEFAULT_PAN_USERNAME),
+        help=f"PAN-OS firewall username (default: {DEFAULT_PAN_USERNAME})",
     )
     parser.add_argument(
-        "-p",
-        "--pi-hostname",
-        default="192.168.1.2",
-        help="Raspberry Pi hostname or IP address (default: 192.168.1.2)",
+        "--pan_password",
+        default=os.environ.get("PAN_PASSWORD", DEFAULT_PAN_PASSWORD),
+        help=f"PAN-OS firewall password (default: {DEFAULT_PAN_PASSWORD})",
     )
     parser.add_argument(
-        "-d",
-        "--pi-content-path",
-        default="/var/tmp/",
-        help="Raspberry Pi content path (default: /var/tmp/)",
+        "--pan_password_default",
+        default=os.environ.get(
+            "PAN_PASSWORD_DEFAULT", DEFAULT_PAN_PASSWORD_DEFAULT
+        ),  # noqa E501
+        help=f"Original default PAN-OS firewall password (default: {DEFAULT_PAN_PASSWORD_DEFAULT})",  # noqa E501
     )
     parser.add_argument(
-        "-f",
-        "--content-file",
-        default="panupv2-all-contents-8834-8684",
-        help="Content file name (default: panupv2-all-contents-8834-8684)",
+        "--content_path",
+        default=os.environ.get("CONTENT_PATH", DEFAULT_CONTENT_PATH),
+        help=f"Content path on the Raspberry Pi (default: {DEFAULT_CONTENT_PATH})",  # noqa E501
     )
+    parser.add_argument(
+        "--content_file",
+        default=os.environ.get("CONTENT_FILE", DEFAULT_CONTENT_FILE),
+        help=f"Content file name (default: {DEFAULT_CONTENT_FILE})",
+    )
+    parser.add_argument(
+        "--log_level",
+        default=os.environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL),
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help=f"Set the log level (default: {DEFAULT_LOG_LEVEL})",
+    )
+
     args = parser.parse_args()
 
+    # Validate the content_path argument
+    content_path = args.content_path
+    if not os.path.isdir(content_path):
+        parser.error(f"Invalid content path: {content_path}")
+
     # Firewall connection details
-    hostname = args.hostname
-    username = args.username
-    old_password = args.old_password
-    new_password = args.new_password
+    pan_hostname = args.pan_hostname
+    pan_username = args.pan_username
+    pan_password = args.pan_password
+    pan_password_default = args.pan_password_default
 
     # Raspberry Pi connection details
     pi_hostname = args.pi_hostname
-    pi_content_path = args.pi_content_path
+    pi_username = args.pi_username
+    pi_password = args.pi_password
+    content_path = args.content_path
     content_file = args.content_file
 
-    # Call the functions
-    change_password(
-        hostname,
-        username,
-        old_password,
-        new_password,
+    # Change the default firewall password
+    change_firewall_password(
+        pan_hostname,
+        pan_username,
+        pan_password,
+        pan_password_default,
     )
-    api_key = get_api_key(
-        hostname,
-        username,
-        new_password,
+
+    # Retrieve the API key
+    api_key = retrieve_api_key(
+        pan_hostname,
+        pan_username,
+        pan_password,
     )
     if api_key:
         logger.info("API Key: {}".format(api_key))
@@ -110,22 +147,27 @@ def main():
         logger.error("Failed to retrieve the API key.")
         return
 
-    scp_import_content(
-        hostname,
-        username,
-        new_password,
+    # Import content using SCP
+    import_content_via_scp(
+        pan_hostname,
+        pan_username,
+        pan_password,
         pi_hostname,
-        pi_content_path,
+        pi_username,
+        pi_password,
+        content_path,
         content_file,
     )
-    job_id = send_api_request(
-        hostname,
+
+    # Install content using the API
+    job_id = install_content_via_api(
+        pan_hostname,
         api_key,
         content_file,
     )
     if job_id:
-        job_monitor(
-            hostname,
+        monitor_job_status(
+            pan_hostname,
             api_key,
             job_id,
         )

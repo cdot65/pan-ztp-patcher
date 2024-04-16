@@ -171,6 +171,86 @@ def retrieve_api_key(
     return None
 
 
+def retrieve_license(pan_hostname, api_key):
+    """
+    Retrieves the PAN-OS firewall licenses from the CSP.
+
+    Args:
+        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
+        api_key (str): The API key for authentication.
+
+    Returns:
+        bool: True if the Threat Prevention license is present, False otherwise. # noqa: E501
+
+    Raises:
+        urllib.error.URLError: If a URL error occurs during the API request.
+        xml.etree.ElementTree.ParseError: If an error occurs while parsing the XML response. # noqa: E501
+        Exception: If any other error occurs during the API request.
+
+    Example:
+        has_threat_prevention = retrieve_license("192.168.1.1", "api_key")
+    """
+    logger.info("=" * 79)
+    logger.info("Retrieving licenses...")
+    logger.info("=" * 79)
+
+    try:
+        # Construct the API URL for retrieving licenses
+        url = "https://{}/api/?type=op&cmd={}".format(
+            pan_hostname,
+            urllib.parse.quote_plus(
+                "<request><license><fetch/></license></request>"
+            ),  # noqa: E501
+        )
+        logger.debug("API URL: {}".format(url))
+
+        # Create an HTTPS request with SSL verification disabled
+        request = urllib.request.Request(url)
+        request.add_header("X-PAN-KEY", api_key)
+
+        # Send the API request
+        logger.debug("Retrieving licenses...")
+        response = urllib.request.urlopen(
+            request, context=urllib.request.ssl._create_unverified_context()
+        )
+        logger.debug("Received response: {}".format(response))
+
+        # Read the response content
+        logger.debug("Reading response content...")
+        response_content = response.read().decode("utf-8")
+        logger.debug("Received response: {}".format(response_content))
+
+        # Parse the XML response
+        logger.debug("Parsing XML response...")
+        root = ET.fromstring(response_content)
+        logger.debug("Root element: {}".format(root.tag))
+
+        # Check the response status
+        status = root.attrib.get("status")
+        if status == "success":
+            # Search for the Threat Prevention license
+            threat_prevention_entry = root.find(
+                "./result/licenses/entry[feature='Threat Prevention']"
+            )
+            if threat_prevention_entry is not None:
+                logger.info("Threat Prevention license found.")
+                return True
+            else:
+                logger.warning("Threat Prevention license not found.")
+                return False
+        else:
+            logger.error("API request failed.")
+            return False
+
+    except urllib.error.URLError as url_error:
+        logger.error("URL error occurred: {}".format(str(url_error)))
+    except ET.ParseError as parse_error:
+        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+    except Exception as e:
+        logger.error("An error occurred: {}".format(str(e)))
+    return False
+
+
 def import_content_via_scp(
     pan_hostname,
     pan_username,
@@ -462,7 +542,7 @@ def monitor_job_status(pan_hostname, api_key, job_id):
                 sys.exit(1)
 
             # Check the timeout
-            if time.time() - start_time > 120:
+            if time.time() - start_time > 300:
                 logger.error("Job monitoring timed out.")
                 sys.exit(1)
 

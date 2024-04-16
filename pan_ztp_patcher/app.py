@@ -10,6 +10,7 @@ from pan_ztp_patcher.ztp_patcher import (
     install_content_via_api,
     monitor_job_status,
     retrieve_api_key,
+    retrieve_license,
 )
 
 
@@ -128,6 +129,16 @@ def main():
         logger.info("API Key retrieved successfully.")
     else:
         logger.error("Failed to retrieve the API key.")
+        return
+
+    license_job = retrieve_license(
+        pan_hostname,
+        api_key,
+    )
+    if license_job:
+        logger.info("License retrieved successfully.")
+    else:
+        logger.error("Failed to retrieve the license.")
         return
 
     # Import content using SCP

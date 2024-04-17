@@ -377,7 +377,95 @@ def import_content_via_scp(
         logger.error("An error occurred: {}".format(str(e)))
 
 
-def install_content_via_api(
+def install_content_from_servers(
+    pan_hostname,
+    api_key,
+):
+    """
+    Sends an API request to install the content on the PAN-OS firewall.
+
+    Args:
+        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
+        api_key (str): The API key for authentication.
+        content_file (str): The name of the content file to install.
+
+    Returns:
+        str: The job ID if the API request is successful, None otherwise.
+
+    Raises:
+        urllib.error.URLError: If a URL error occurs during the API request.
+        xml.etree.ElementTree.ParseError: If an error occurs while parsing the XML response. # noqa: E501
+        Exception: If any other error occurs during the API request.
+
+    Example:
+        job_id = install_content_via_usb("192.168.1.1", "api_key", "content.txt")
+    """
+
+    logger.info("=" * 79)
+    logger.info("Attempting to update content from public PANW servers...")
+    logger.info("=" * 79)
+
+    try:
+        # Construct the API URL
+        url = "https://{}/api/?type=op&cmd={}".format(
+            pan_hostname,
+            urllib.parse.quote_plus(
+                "<request><content><upgrade><install><version>latest</version></install></upgrade></content></request>"  # noqa: E501
+            ),
+        )
+        logger.debug("API URL: {}".format(url))
+
+        # Create an HTTPS request with SSL verification disabled
+        request = urllib.request.Request(url)
+        request.add_header("X-PAN-KEY", api_key)
+
+        # Send the API request
+        logger.debug("Sending API request...")
+        response = urllib.request.urlopen(
+            request, context=urllib.request.ssl._create_unverified_context()
+        )
+        logger.debug("Received response: {}".format(response))
+
+        # Read the response content
+        logger.debug("Reading response content...")
+        response_content = response.read().decode("utf-8")
+        logger.debug("Received response: {}".format(response_content))
+
+        # Parse the XML response
+        logger.debug("Parsing XML response...")
+        root = ET.fromstring(response_content)
+        logger.debug("Root element: {}".format(root.tag))
+
+        # Check the response status
+        if root.attrib.get("status") == "success":
+            job_element = root.find("./result/job")
+            if job_element is not None:
+                job_id = job_element.text
+                logger.info(
+                    "API request successful. Job ID: {}".format(job_id)
+                )  # noqa: E501
+                return job_id
+            else:
+                logger.error("Job ID not found in the response.")
+                return None
+        elif root.attrib.get("line") > 0:
+            logger.error(
+                "API request failed: {}".format(root.attrib.get("line"))
+            )  # noqa: E501
+            return None
+        else:
+            logger.error("API request failed.")
+            return None
+
+    except urllib.error.URLError as url_error:
+        logger.error("URL error occurred: {}".format(str(url_error)))
+    except ET.ParseError as parse_error:
+        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+    except Exception as e:
+        logger.error("An error occurred: {}".format(str(e)))
+
+
+def install_content_via_usb(
     pan_hostname,
     api_key,
     content_file,
@@ -399,11 +487,11 @@ def install_content_via_api(
         Exception: If any other error occurs during the API request.
 
     Example:
-        job_id = install_content_via_api("192.168.1.1", "api_key", "content.txt")
+        job_id = install_content_via_usb("192.168.1.1", "api_key", "content.txt")
     """
 
     logger.info("=" * 79)
-    logger.info("Installing content via API...")
+    logger.info("Attempting to update content from USB...")
     logger.info("=" * 79)
 
     try:
@@ -440,8 +528,7 @@ def install_content_via_api(
         logger.debug("Root element: {}".format(root.tag))
 
         # Check the response status
-        status = root.attrib.get("status")
-        if status == "success":
+        if root.attrib.get("status") == "success":
             job_element = root.find("./result/job")
             if job_element is not None:
                 job_id = job_element.text
@@ -452,6 +539,11 @@ def install_content_via_api(
             else:
                 logger.error("Job ID not found in the response.")
                 return None
+        elif root.attrib.get("line") > 0:
+            logger.error(
+                "API request failed: {}".format(root.attrib.get("line"))
+            )  # noqa: E501
+            return None
         else:
             logger.error("API request failed.")
             return None

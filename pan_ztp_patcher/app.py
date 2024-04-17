@@ -7,7 +7,8 @@ from pan_ztp_patcher.utils import setup_logging
 from pan_ztp_patcher.ztp_patcher import (
     change_firewall_password,
     import_content_via_scp,
-    install_content_via_api,
+    install_content_from_servers,
+    install_content_via_usb,
     monitor_job_status,
     retrieve_api_key,
     retrieve_license,
@@ -141,24 +142,39 @@ def main():
         logger.error("Failed to retrieve the license.")
         return
 
-    # Import content using SCP
-    import_content_via_scp(
-        pan_hostname,
-        pan_username,
-        pan_password,
-        pi_hostname,
-        pi_username,
-        pi_password,
-        content_path,
-        content_file,
-    )
-
-    # Install content using the API
-    job_id = install_content_via_api(
+    # Attempt to install the content via servers
+    job_id = install_content_from_servers(
         pan_hostname,
         api_key,
-        content_file,
     )
+
+    if job_id:
+        logger.info("Content installed successfully.")
+    else:
+        logger.error(
+            "Failed to install the content from servers, attempting to SCP from Pi."  # noqa: E501
+        )
+
+        # Import content using SCP
+        import_content_via_scp(
+            pan_hostname,
+            pan_username,
+            pan_password,
+            pi_hostname,
+            pi_username,
+            pi_password,
+            content_path,
+            content_file,
+        )
+
+        # Install content using the API
+        job_id = install_content_via_usb(
+            pan_hostname,
+            api_key,
+            content_file,
+        )
+
+    # Monitor the job status
     if job_id:
         monitor_job_status(
             pan_hostname,

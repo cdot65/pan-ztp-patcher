@@ -320,13 +320,16 @@ def import_content_via_scp(
         )
         logger.debug("Sending SCP command: {}".format(scp_command))
         shell.send(scp_command + "\n")
-        time.sleep(2)
+        time.sleep(5)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
         # Check if the host authenticity prompt appears
         logger.debug("Checking for host authenticity prompt...")
-        if "Please type 'yes', 'no' or the fingerprint" in output:
+        if (
+            "Please type 'yes', 'no' or the fingerprint" in output
+            or "Are you sure you want to continue connecting" in output
+        ):  # noqa: E501
             logger.debug("Sending 'yes' to the prompt...")
             shell.send("yes\n")
             time.sleep(2)
@@ -334,7 +337,9 @@ def import_content_via_scp(
             logger.debug("Received output: {}".format(output))
 
         # Send the password for pi@
-        logger.debug("Sending password for pi@{}...".format(pi_hostname))
+        logger.debug(
+            "Sending password for {}@{}...".format(pi_username, pi_hostname)
+        )  # noqa: E501
         time.sleep(2)
         shell.send(pi_password + "\n")
         time.sleep(2)
@@ -355,7 +360,7 @@ def import_content_via_scp(
             if "already exists" in output:
                 logger.info("Content file already exists on the firewall.")
                 break
-            elif "100%" in output and "ETA" not in output:
+            elif "saved" in output and "ETA" not in output:
                 logger.debug("SCP import content completed successfully.")
                 logger.info("SCP import content completed successfully.")
                 break

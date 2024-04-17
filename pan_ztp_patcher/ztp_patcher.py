@@ -56,7 +56,7 @@ def change_firewall_password(
 
         # Wait for the prompt
         logger.debug("Waiting for the prompt...")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
@@ -65,21 +65,21 @@ def change_firewall_password(
             "Sending pan_password_default: {}".format(pan_password_default)
         )  # noqa: E501
         shell.send(pan_password_default + "\n")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
         # Send the new password
         logger.debug("Sending pan_password: {}".format(pan_password))
         shell.send(pan_password + "\n")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
         # Confirm the new password
         logger.debug("Confirming pan_password: {}".format(pan_password))
         shell.send(pan_password + "\n")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
@@ -307,7 +307,7 @@ def import_content_via_scp(
 
         # Wait for the prompt
         logger.debug("Waiting for the prompt...")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
@@ -332,7 +332,7 @@ def import_content_via_scp(
         ):  # noqa: E501
             logger.debug("Sending 'yes' to the prompt...")
             shell.send("yes\n")
-            time.sleep(2)
+            time.sleep(3)
             output = shell.recv(1024).decode("utf-8")
             logger.debug("Received output: {}".format(output))
 
@@ -340,9 +340,9 @@ def import_content_via_scp(
         logger.debug(
             "Sending password for {}@{}...".format(pi_username, pi_hostname)
         )  # noqa: E501
-        time.sleep(2)
+        time.sleep(3)
         shell.send(pi_password + "\n")
-        time.sleep(2)
+        time.sleep(3)
         output = shell.recv(1024).decode("utf-8")
         logger.debug("Received output: {}".format(output))
 
@@ -364,7 +364,7 @@ def import_content_via_scp(
                 logger.debug("SCP import content completed successfully.")
                 logger.info("SCP import content completed successfully.")
                 break
-            time.sleep(1)
+            time.sleep(3)
 
         # Close the SSH connection
         client.close()
@@ -643,8 +643,8 @@ def monitor_job_status(pan_hostname, api_key, job_id):
                 logger.error("Job monitoring timed out.")
                 sys.exit(1)
 
-            # Wait for 2 seconds before the next iteration
-            time.sleep(2)
+            # Wait for 3 seconds before the next iteration
+            time.sleep(3)
 
         except urllib.error.URLError as url_error:
             logger.error("URL error occurred: {}".format(str(url_error)))

@@ -201,102 +201,6 @@ def check_content_version(
         return False
 
 
-def download_software(
-    api_key: str,
-    content_version: str,
-    pan_hostname: str,
-) -> Optional[str]:
-    """
-    Downloads the specified software version from the PANW servers.
-
-    Args:
-        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
-        api_key (str): The API key for authentication.
-        content_version (str): The version of the software to download.
-
-    Returns:
-        Optional[str]: The job ID if the API request is successful, None otherwise.
-
-    Raises:
-        urllib.error.URLError: If a URL error occurs during the API request.
-        xml.etree.ElementTree.ParseError: If an error occurs while parsing the XML response.
-        Exception: If any other error occurs during the API request.
-    """
-
-    logger.info("=" * 79)
-    logger.info("Attempting to download software version: {}".format(content_version))
-    logger.info("=" * 79)
-
-    try:
-        # Construct the API URL
-        url = "https://{}/api/?type=op&cmd={}".format(
-            pan_hostname,
-            urllib.parse.quote_plus(
-                "<request><content><upgrade><download><file>{}</file></download></upgrade></content></request>".format(
-                    content_version
-                )
-            ),
-        )
-        logger.debug("API URL: {}".format(url))
-
-        # Create an HTTPS request with SSL verification disabled
-        request = urllib.request.Request(url)
-        request.add_header("X-PAN-KEY", api_key)
-
-        # Send the API request
-        logger.debug("Sending API request...")
-        response = urllib.request.urlopen(
-            request, context=urllib.request.ssl._create_unverified_context()
-        )
-
-        # Read the response content
-        logger.debug("Reading response content...")
-        response_content = response.read().decode("utf-8")
-        logger.debug("Received response: {}".format(response_content))
-
-        # Parse the XML response
-        logger.debug("Parsing XML response...")
-        root = ET.fromstring(response_content)
-        logger.debug("Root element: {}".format(root.tag))
-
-        # Check the response status
-        if root.attrib.get("status") == "success":
-            job_element = root.find("./result/job")
-
-            # Extract the job ID from the response
-            if job_element is not None:
-                job_id = job_element.text
-                logger.info(
-                    "API request successful. Job ID: {}".format(job_id),
-                )
-                return job_id
-
-            # Log an error if the job ID is not found
-            else:
-                logger.error("Job ID not found in the response.")
-                return None
-
-        else:
-            error_message = root.find("./msg/line")
-            if error_message is not None:
-                logger.error("API request failed: {}".format(error_message.text))
-            else:
-                logger.error("API request failed.")
-            return None
-
-    except urllib.error.URLError as url_error:
-        logger.error("URL error occurred: {}".format(str(url_error)))
-        return None
-
-    except ET.ParseError as parse_error:
-        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
-        return None
-
-    except Exception as e:
-        logger.error("An error occurred: {}".format(str(e)))
-        return None
-
-
 def copy_content_via_scp(
     content_path: str,
     content_version: str,
@@ -436,6 +340,102 @@ def copy_content_via_scp(
     except Exception as e:
         logger.error("An error occurred: {}".format(str(e)))
         return False
+
+
+def download_software(
+    api_key: str,
+    content_version: str,
+    pan_hostname: str,
+) -> Optional[str]:
+    """
+    Downloads the specified software version from the PANW servers.
+
+    Args:
+        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
+        api_key (str): The API key for authentication.
+        content_version (str): The version of the software to download.
+
+    Returns:
+        Optional[str]: The job ID if the API request is successful, None otherwise.
+
+    Raises:
+        urllib.error.URLError: If a URL error occurs during the API request.
+        xml.etree.ElementTree.ParseError: If an error occurs while parsing the XML response.
+        Exception: If any other error occurs during the API request.
+    """
+
+    logger.info("=" * 79)
+    logger.info("Attempting to download software version: {}".format(content_version))
+    logger.info("=" * 79)
+
+    try:
+        # Construct the API URL
+        url = "https://{}/api/?type=op&cmd={}".format(
+            pan_hostname,
+            urllib.parse.quote_plus(
+                "<request><content><upgrade><download><file>{}</file></download></upgrade></content></request>".format(
+                    content_version
+                )
+            ),
+        )
+        logger.debug("API URL: {}".format(url))
+
+        # Create an HTTPS request with SSL verification disabled
+        request = urllib.request.Request(url)
+        request.add_header("X-PAN-KEY", api_key)
+
+        # Send the API request
+        logger.debug("Sending API request...")
+        response = urllib.request.urlopen(
+            request, context=urllib.request.ssl._create_unverified_context()
+        )
+
+        # Read the response content
+        logger.debug("Reading response content...")
+        response_content = response.read().decode("utf-8")
+        logger.debug("Received response: {}".format(response_content))
+
+        # Parse the XML response
+        logger.debug("Parsing XML response...")
+        root = ET.fromstring(response_content)
+        logger.debug("Root element: {}".format(root.tag))
+
+        # Check the response status
+        if root.attrib.get("status") == "success":
+            job_element = root.find("./result/job")
+
+            # Extract the job ID from the response
+            if job_element is not None:
+                job_id = job_element.text
+                logger.info(
+                    "API request successful. Job ID: {}".format(job_id),
+                )
+                return job_id
+
+            # Log an error if the job ID is not found
+            else:
+                logger.error("Job ID not found in the response.")
+                return None
+
+        else:
+            error_message = root.find("./msg/line")
+            if error_message is not None:
+                logger.error("API request failed: {}".format(error_message.text))
+            else:
+                logger.error("API request failed.")
+            return None
+
+    except urllib.error.URLError as url_error:
+        logger.error("URL error occurred: {}".format(str(url_error)))
+        return None
+
+    except ET.ParseError as parse_error:
+        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+        return None
+
+    except Exception as e:
+        logger.error("An error occurred: {}".format(str(e)))
+        return None
 
 
 def install_content_via_usb(

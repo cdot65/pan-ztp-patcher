@@ -6,18 +6,18 @@ from logging.handlers import RotatingFileHandler
 
 def setup_logging():
     """
-    Configures the packages logging.
+    Configures the logging for the package.
 
-    Args: None
+    Args:
+        None
 
     Returns:
-        logger: A logging object.
+        logging.Logger: A logging object.
 
-    Raises: None
-
-    Example:
-        logger = setup_logging()
+    Raises:
+        None
     """
+
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 

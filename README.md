@@ -37,7 +37,7 @@ pip install pan_ztp_patcher
 To use the PAN-OS ZTP Patcher, run the following command:
 
 ```bash
-ztp_patcher --hostname <hostname> --username <username> --old-password <old_password> --new-password <new_password> [--pi-hostname <pi_hostname>] [--pi-content-path <pi_content_path>] [--content-file <content_file>]
+ztp_patcher --hostname <hostname> --username <username> --old-password <old_password> --new-password <new_password> [--pi-hostname <pi_hostname>] [--pi-content-path <pi_content_path>] [--content-file <content_version>]
 ```
 
 - `<hostname>`: The hostname or IP address of the PAN-OS firewall.
@@ -46,7 +46,7 @@ ztp_patcher --hostname <hostname> --username <username> --old-password <old_pass
 - `<new_password>`: The new password to be set for the specified user on the PAN-OS firewall.
 - `<pi_hostname>` (optional): The hostname or IP address of the Raspberry Pi Zero appliance (default: 192.168.1.2).
 - `<pi_content_path>` (optional): The path on the Raspberry Pi Zero where the content file is located (default: /var/tmp/).
-- `<content_file>` (optional): The name of the content file to be installed on the PAN-OS firewall (default: panupv2-all-contents-8834-8684).
+- `<content_version>` (optional): The name of the content file to be installed on the PAN-OS firewall (default: panupv2-all-contents-8834-8684).
 
 Example:
 

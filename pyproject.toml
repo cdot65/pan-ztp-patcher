@@ -10,13 +10,15 @@ readme = "README.md"
 ztp_patcher = "pan_ztp_patcher.app:main"
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8.1"
 paramiko = "^3.4.0"
 python-dotenv = "0.21.1"
 
 [tool.poetry.group.dev.dependencies]
 ipdb = "^0.13.13"
 pytest = "^8.1.1"
+flake8 = "^7.0.0"
+black = "^24.4.0"
 
 [tool.black]
 line-length = 80

@@ -24,7 +24,7 @@ Deploying PAN-OS firewalls typically requires ensuring they are updated with the
 Install the PAN-OS ZTP Patcher via pip:
 
 ```bash
-pip install pan_ztp_patcher
+pip install pan-ztp-patcher
 ```
 
 ## Usage

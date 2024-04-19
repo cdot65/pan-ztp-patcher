@@ -15,6 +15,7 @@ from pan_ztp_patcher.ztp_patcher import (
     install_specific_content_from_servers,
     install_content_via_usb,
     monitor_job_status,
+    private_data_reset,
     retrieve_api_key,
     retrieve_license,
 )
@@ -371,6 +372,21 @@ def main():
     # ------------------------------------------------------------------------
     # Private Data Reset Workflow
     # ------------------------------------------------------------------------
+    max_attempts = 3
+    attempt = 1
+
+    while attempt <= max_attempts:
+        reset = private_data_reset(
+            api_key=api_key,
+            pan_hostname=pan_hostname,
+        )
+
+        if reset:
+            logger.info("Firewall data successfully reset.")
+            break
+        else:
+            logger.warning("Failed to reset the firewall data.")
+            attempt += 1
 
 
 if __name__ == "__main__":

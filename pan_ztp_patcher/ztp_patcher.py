@@ -822,6 +822,80 @@ def monitor_job_status(
             logger.error("An error occurred: {}".format(str(e)))
 
 
+def private_data_reset(
+    api_key: str,
+    pan_hostname: str,
+) -> bool:
+    """
+    Resets the configuration data on the PAN-OS firewall.
+
+    Args:
+        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
+        api_key (str): The api key used for authentication.
+
+    Returns:
+        Optional[bool]: True if the job is completed successfully, False otherwise.
+
+    Raises:
+        urllib.error.URLError: If a URL error occurs during the API request.
+        xml.etree.ElementTree.ParseError: If an error occurs while parsing the XML response.
+        Exception: If any other error occurs during the job monitoring process.
+    """
+
+    logger.info("=" * 79)
+    logger.info("Resetting the private data...")
+    logger.info("=" * 79)
+
+    while True:
+        try:
+            # Construct the API URL for private data reset
+            url = "https://{}/api/?type=op&cmd={}".format(
+                pan_hostname,
+                urllib.parse.quote_plus(
+                    "<request><system><private-data-reset/></system></request>"
+                ),
+            )
+            logger.debug("Request Private Data Reset URL: {}".format(url))
+
+            # Create an HTTPS request with SSL verification disabled
+            request = urllib.request.Request(url)
+            request.add_header("X-PAN-KEY", api_key)
+
+            # Send the API request
+            logger.debug("Sending job monitoring request...")
+            response = urllib.request.urlopen(
+                request,
+                context=urllib.request.ssl._create_unverified_context(),
+            )
+
+            # Check the status code
+            if response.getcode() != 200:
+                raise ValueError(
+                    "HTTP request failed with status code: {}".format(
+                        response.getcode()
+                    )
+                )
+
+            # Read the response content
+            logger.debug("Reading response content...")
+            response_content = response.read().decode("utf-8")
+            logger.debug("Received response: {}".format(response_content))
+
+            return True
+
+        except urllib.error.URLError as url_error:
+            logger.error("URL error occurred: {}".format(str(url_error)))
+            return False
+
+        except ET.ParseError as parse_error:
+            logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+            return False
+
+        except Exception as e:
+            logger.error("An error occurred: {}".format(str(e)))
+            return False
+
+
 def retrieve_api_key(
     pan_hostname: str,
     pan_password_new: str,

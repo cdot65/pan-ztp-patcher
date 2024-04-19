@@ -25,7 +25,8 @@ def test_private_data_reset_success():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the private_data_reset function
         result = private_data_reset(api_key, pan_hostname)
@@ -50,7 +51,8 @@ def test_private_data_reset_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the private_data_reset function
         result = private_data_reset(api_key, pan_hostname)

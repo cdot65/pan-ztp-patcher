@@ -80,12 +80,16 @@ def test_copy_content_via_scp_failure_ssh_exception():
     pi_username = "pi"
 
     # Mock the paramiko.SSHClient and its methods
-    with patch("pan_ztp_patcher.ztp_patcher.paramiko.SSHClient") as mock_ssh_client:
+    with patch(
+        "pan_ztp_patcher.ztp_patcher.paramiko.SSHClient"
+    ) as mock_ssh_client:
         mock_client = MagicMock()
         mock_ssh_client.return_value = mock_client
 
         # Mock the invoke_shell method to raise an SSHException
-        mock_client.invoke_shell.side_effect = SSHException("SSH exception occurred")
+        mock_client.invoke_shell.side_effect = SSHException(
+            "SSH exception occurred"
+        )
 
         # Call the copy_content_via_scp function
         result = copy_content_via_scp(

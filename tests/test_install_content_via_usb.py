@@ -27,7 +27,8 @@ def test_install_content_via_usb_success():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the install_content_via_usb function
         job_id = install_content_via_usb(api_key, content_version, pan_hostname)
@@ -59,7 +60,8 @@ def test_install_content_via_usb_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the install_content_via_usb function
         job_id = install_content_via_usb(api_key, content_version, pan_hostname)

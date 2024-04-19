@@ -17,7 +17,9 @@ def test_change_firewall_password():
     pan_username = "admin"
 
     # Mock the paramiko.SSHClient and its methods
-    with patch("pan_ztp_patcher.ztp_patcher.paramiko.SSHClient") as mock_ssh_client:
+    with patch(
+        "pan_ztp_patcher.ztp_patcher.paramiko.SSHClient"
+    ) as mock_ssh_client:
         mock_client = MagicMock()
         mock_ssh_client.return_value = mock_client
 

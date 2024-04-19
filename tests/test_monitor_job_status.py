@@ -30,7 +30,8 @@ def test_monitor_job_status_success():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the monitor_job_status function
         result = monitor_job_status(
@@ -69,7 +70,8 @@ def test_monitor_job_status_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the monitor_job_status function
         result = monitor_job_status(

@@ -31,7 +31,8 @@ def test_retrieve_license_success():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the retrieve_license function
         result = retrieve_license(api_key, pan_hostname)
@@ -67,7 +68,8 @@ def test_retrieve_license_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the retrieve_license function
         result = retrieve_license(api_key, pan_hostname)
@@ -98,7 +100,8 @@ def test_retrieve_license_api_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the retrieve_license function
         result = retrieve_license(api_key, pan_hostname)

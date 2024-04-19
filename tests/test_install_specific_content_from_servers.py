@@ -27,7 +27,8 @@ def test_install_specific_content_from_servers_success():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the install_specific_content_from_servers function
         job_id = install_specific_content_from_servers(
@@ -63,7 +64,8 @@ def test_install_specific_content_from_servers_failure():
 
     # Patch the urllib.request.urlopen function
     with patch(
-        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen", return_value=mock_response
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
     ):
         # Call the install_specific_content_from_servers function
         job_id = install_specific_content_from_servers(

@@ -173,17 +173,23 @@ def check_content_version(
                     filename_element is not None
                     and filename_element.text == content_version
                 ):
-                    logger.info(f"Content version (filename) {content_version} found.")
+                    logger.info(
+                        f"Content version (filename) {content_version} found."
+                    )
                     return True
 
             # If the content version is not found in any entry
-            logger.info(f"Content version (filename) {content_version} not found.")
+            logger.info(
+                f"Content version (filename) {content_version} not found."
+            )
             return False
 
         else:
             error_message = root.find("./msg/line")
             if error_message is not None:
-                logger.error("API request failed: {}".format(error_message.text))
+                logger.error(
+                    "API request failed: {}".format(error_message.text)
+                )
             else:
                 logger.error("API request failed.")
             return False
@@ -286,7 +292,9 @@ def copy_content_via_scp(
             logger.debug("Received output: {}".format(output))
 
         # Send the password for the Raspberry Pi
-        logger.debug("Sending password for {}@{}...".format(pi_username, pi_hostname))
+        logger.debug(
+            "Sending password for {}@{}...".format(pi_username, pi_hostname)
+        )
         time.sleep(3)
         shell.send(pi_password + "\n")
         time.sleep(3)
@@ -365,7 +373,9 @@ def download_software(
     """
 
     logger.info("=" * 79)
-    logger.info("Attempting to download software version: {}".format(content_version))
+    logger.info(
+        "Attempting to download software version: {}".format(content_version)
+    )
     logger.info("=" * 79)
 
     try:
@@ -420,7 +430,9 @@ def download_software(
         else:
             error_message = root.find("./msg/line")
             if error_message is not None:
-                logger.error("API request failed: {}".format(error_message.text))
+                logger.error(
+                    "API request failed: {}".format(error_message.text)
+                )
             else:
                 logger.error("API request failed.")
             return None
@@ -514,7 +526,9 @@ def install_content_via_usb(
         else:
             error_message = root.find("./msg/line")
             if error_message is not None:
-                logger.error("API request failed: {}".format(error_message.text))
+                logger.error(
+                    "API request failed: {}".format(error_message.text)
+                )
             else:
                 logger.error("API request failed.")
             return None
@@ -602,7 +616,9 @@ def install_latest_content_from_servers(
                 return None
 
         elif root.attrib.get("line") > 0:
-            logger.error("API request failed: {}".format(root.attrib.get("line")))
+            logger.error(
+                "API request failed: {}".format(root.attrib.get("line"))
+            )
             return None
 
         else:
@@ -645,7 +661,9 @@ def install_specific_content_from_servers(
     """
 
     logger.info("=" * 79)
-    logger.info(f"Attempting to install specific content version: {content_version}")
+    logger.info(
+        f"Attempting to install specific content version: {content_version}"
+    )
     logger.info("=" * 79)
 
     try:
@@ -698,7 +716,9 @@ def install_specific_content_from_servers(
         else:
             error_message = root.find("./msg/line")
             if error_message is not None:
-                logger.error("API request failed: {}".format(error_message.text))
+                logger.error(
+                    "API request failed: {}".format(error_message.text)
+                )
             else:
                 logger.error("API request failed.")
             return None
@@ -817,7 +837,9 @@ def monitor_job_status(
         except urllib.error.URLError as url_error:
             logger.error("URL error occurred: {}".format(str(url_error)))
         except ET.ParseError as parse_error:
-            logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+            logger.error(
+                "XML parsing error occurred: {}".format(str(parse_error))
+            )
         except Exception as e:
             logger.error("An error occurred: {}".format(str(e)))
 
@@ -888,7 +910,9 @@ def private_data_reset(
             return False
 
         except ET.ParseError as parse_error:
-            logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+            logger.error(
+                "XML parsing error occurred: {}".format(str(parse_error))
+            )
             return False
 
         except Exception as e:
@@ -999,7 +1023,9 @@ def retrieve_license(
         # Construct the API URL for retrieving licenses
         url = "https://{}/api/?type=op&cmd={}".format(
             pan_hostname,
-            urllib.parse.quote_plus("<request><license><fetch/></license></request>"),
+            urllib.parse.quote_plus(
+                "<request><license><fetch/></license></request>"
+            ),
         )
         logger.debug("API URL: {}".format(url))
 

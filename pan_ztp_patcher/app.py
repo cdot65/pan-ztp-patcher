@@ -106,7 +106,9 @@ def main():
     pan_hostname = args.pan_hostname or os.getenv("PAN_HOSTNAME")
     pan_username = args.pan_username or os.getenv("PAN_USERNAME")
     pan_password_new = args.pan_password_new or os.getenv("PAN_PASSWORD")
-    pan_password_old = args.pan_password_old or os.getenv("PAN_PASSWORD_DEFAULT")
+    pan_password_old = args.pan_password_old or os.getenv(
+        "PAN_PASSWORD_DEFAULT"
+    )
 
     # Raspberry Pi connection details
     pi_hostname = args.pi_hostname or os.getenv("PI_HOSTNAME")
@@ -197,10 +199,12 @@ def main():
                 logger.info(
                     "File downloaded successfully. Installing specific content from servers."
                 )
-                jobs["id"]["install_panw"] = install_specific_content_from_servers(
-                    api_key=api_key,
-                    content_version=content_version,
-                    pan_hostname=pan_hostname,
+                jobs["id"]["install_panw"] = (
+                    install_specific_content_from_servers(
+                        api_key=api_key,
+                        content_version=content_version,
+                        pan_hostname=pan_hostname,
+                    )
                 )
 
                 if jobs["id"]["install_panw"]:
@@ -252,10 +256,12 @@ def main():
                 logger.info(
                     "File downloaded successfully. Installing specific content from servers."
                 )
-                jobs["id"]["install_panw"] = install_specific_content_from_servers(
-                    api_key=api_key,
-                    content_version=content_version,
-                    pan_hostname=pan_hostname,
+                jobs["id"]["install_panw"] = (
+                    install_specific_content_from_servers(
+                        api_key=api_key,
+                        content_version=content_version,
+                        pan_hostname=pan_hostname,
+                    )
                 )
 
                 if jobs["id"]["install_panw"]:
@@ -296,7 +302,9 @@ def main():
             continue
 
         # Monitor the job status
-        logger.info(f"Monitoring job status for job ID: {jobs['id']['panw_latest']}")
+        logger.info(
+            f"Monitoring job status for job ID: {jobs['id']['panw_latest']}"
+        )
         jobs["result"]["panw_latest"] = monitor_job_status(
             api_key=api_key,
             job_id=jobs["id"]["panw_latest"],

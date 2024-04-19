@@ -1,0 +1,105 @@
+# tests/test_retrieve_api_key.py
+
+from unittest.mock import MagicMock, patch
+from pan_ztp_patcher.ztp_patcher import retrieve_api_key
+
+
+def test_retrieve_api_key_success():
+    """
+    Test the retrieve_api_key function when the API request is successful.
+
+    This test mocks the API response and checks if the function returns the API key
+    when the request is successful.
+    """
+    pan_hostname = "example.com"
+    pan_password_new = "newpassword"
+    pan_username = "admin"
+
+    # Mock the API response
+    mock_response = MagicMock()
+    mock_response.read.return_value = b"""
+        <response status="success">
+            <result>
+                <key>api_key_value</key>
+            </result>
+        </response>
+    """
+
+    # Patch the urllib.request.urlopen function
+    with patch(
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
+    ):
+        # Call the retrieve_api_key function
+        api_key = retrieve_api_key(
+            pan_hostname,
+            pan_password_new,
+            pan_username,
+        )
+
+        # Assert that the function returns the expected API key
+        assert api_key == "api_key_value"
+
+
+def test_retrieve_api_key_failure():
+    """
+    Test the retrieve_api_key function when the API request fails.
+
+    This test mocks the API response without the API key element and checks if
+    the function returns None when the API key is not found in the response.
+    """
+    pan_hostname = "example.com"
+    pan_password_new = "newpassword"
+    pan_username = "admin"
+
+    # Mock the API response without the API key element
+    mock_response = MagicMock()
+    mock_response.read.return_value = b"""
+        <response status="success">
+            <result>
+                <message>No API key found</message>
+            </result>
+        </response>
+    """
+
+    # Patch the urllib.request.urlopen function
+    with patch(
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        return_value=mock_response,
+    ):
+        # Call the retrieve_api_key function
+        api_key = retrieve_api_key(
+            pan_hostname,
+            pan_password_new,
+            pan_username,
+        )
+
+        # Assert that the function returns None
+        assert api_key is None
+
+
+def test_retrieve_api_key_exception():
+    """
+    Test the retrieve_api_key function when an exception occurs.
+
+    This test mocks the urllib.request.urlopen function to raise an exception and
+    checks if the function returns None when an exception occurs.
+    """
+    pan_hostname = "example.com"
+    pan_password_new = "newpassword"
+    pan_username = "admin"
+
+    # Patch the urllib.request.urlopen function to raise an exception
+    with patch(
+        "pan_ztp_patcher.ztp_patcher.urllib.request.urlopen",
+        side_effect=Exception("An error occurred"),
+    ):
+        # Call the retrieve_api_key function
+        api_key = retrieve_api_key(
+            pan_hostname,
+            pan_password_new,
+            pan_username,
+        )
+
+        # Assert that the function returns None
+        assert api_key is None

@@ -100,6 +100,93 @@ def change_firewall_password(
         return False
 
 
+def check_content_installed(
+    api_key: str,
+    pan_hostname: str,
+) -> bool:
+    """
+    Checks if content is installed on the PAN-OS firewall.
+
+    Args:
+        api_key (str): The API key for authentication.
+        pan_hostname (str): The hostname or IP address of the PAN-OS firewall.
+
+    Returns:
+        bool: True if content is installed, False otherwise.
+    """
+
+    logger.info("=" * 79)
+    logger.info("Checking if content is installed...")
+    logger.info("=" * 79)
+
+    try:
+        # Construct the API URL for checking installed content
+        url = "https://{}/api/?type=op&cmd={}".format(
+            pan_hostname,
+            urllib.parse.quote_plus(
+                "<request><content><upgrade><check/></upgrade></content></request>"
+            ),
+        )
+        logger.debug("API URL: {}".format(url))
+
+        # Create an HTTPS request with SSL verification disabled
+        request = urllib.request.Request(url)
+        request.add_header("X-PAN-KEY", api_key)
+
+        # Send the API request
+        logger.debug("Sending API request...")
+        response = urllib.request.urlopen(
+            request, context=urllib.request.ssl._create_unverified_context()
+        )
+
+        # Read the response content
+        logger.debug("Reading response content...")
+        response_content = response.read().decode("utf-8")
+        logger.debug("Received response: {}".format(response_content))
+
+        # Parse the XML response
+        logger.debug("Parsing XML response...")
+        root = ET.fromstring(response_content)
+        logger.debug("Root element: {}".format(root.tag))
+
+        # Check the response status
+        if root.attrib.get("status") == "success":
+            content_updates = root.find("./result/content-updates")
+
+            # Check if there are any <entry> elements within <content-updates>
+            if (
+                content_updates is not None
+                and len(content_updates.findall("./entry")) > 0
+            ):
+                logger.info("Content is installed.")
+                return True
+            else:
+                logger.info("No content installed.")
+                return False
+
+        else:
+            error_message = root.find("./msg/line")
+            if error_message is not None:
+                logger.error(
+                    "API request failed: {}".format(error_message.text)
+                )
+            else:
+                logger.error("API request failed.")
+            return False
+
+    except urllib.error.URLError as url_error:
+        logger.error("URL error occurred: {}".format(str(url_error)))
+        return False
+
+    except ET.ParseError as parse_error:
+        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
+        return False
+
+    except Exception as e:
+        logger.error("An error occurred: {}".format(str(e)))
+        return False
+
+
 def check_content_version(
     api_key: str,
     content_version: str,
@@ -920,6 +1007,73 @@ def private_data_reset(
             return False
 
 
+def reboot_firewall(
+    api_key: str,
+    pan_hostname: str,
+):
+    """_summary_
+
+    Args:
+        api_key (str): _description_
+        pan_hostname (str): _description_
+    """
+
+    logger.info("=" * 79)
+    logger.info("Rebooting the firewall...")
+    logger.info("=" * 79)
+
+    while True:
+        try:
+            # Construct the API URL for rebooting the firewall
+            url = "https://{}/api/?type=op&cmd={}".format(
+                pan_hostname,
+                urllib.parse.quote_plus(
+                    "<request><restart><system/></restart></request>"
+                ),
+            )
+            logger.debug("Reboot URL: {}".format(url))
+
+            # Create an HTTPS request with SSL verification disabled
+            request = urllib.request.Request(url)
+            request.add_header("X-PAN-KEY", api_key)
+
+            # Send the API request
+            logger.debug("Sending reboot request...")
+            response = urllib.request.urlopen(
+                request,
+                context=urllib.request.ssl._create_unverified_context(),
+            )
+
+            # Check the status code
+            if response.getcode() != 200:
+                raise ValueError(
+                    "HTTP request failed with status code: {}".format(
+                        response.getcode()
+                    )
+                )
+
+            # Read the response content
+            logger.debug("Reading response content...")
+            response_content = response.read().decode("utf-8")
+            logger.debug("Received response: {}".format(response_content))
+
+            return True
+
+        except urllib.error.URLError as url_error:
+            logger.error("URL error occurred: {}".format(str(url_error)))
+            return False
+
+        except ET.ParseError as parse_error:
+            logger.error(
+                "XML parsing error occurred: {}".format(str(parse_error))
+            )
+            return False
+
+        except Exception as e:
+            logger.error("An error occurred: {}".format(str(e)))
+            return False
+
+
 def retrieve_api_key(
     pan_hostname: str,
     pan_password_new: str,
@@ -946,53 +1100,70 @@ def retrieve_api_key(
     logger.info("Retrieving API key...")
     logger.info("=" * 79)
 
-    try:
-        # Construct the API URL
-        url = "https://{}/api/?type=keygen&user={}&password={}".format(
-            pan_hostname, pan_username, urllib.parse.quote(pan_password_new)
+    max_attempts = 3
+    timeout = 3
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # Construct the API URL
+            url = "https://{}/api/?type=keygen&user={}&password={}".format(
+                pan_hostname, pan_username, urllib.parse.quote(pan_password_new)
+            )
+            logger.debug("API URL: {}".format(url))
+
+            # Create an HTTPS request with SSL verification disabled
+            logger.debug("Retrieving API key (attempt {})...".format(attempt))
+            request = urllib.request.Request(url)
+            response = urllib.request.urlopen(
+                request,
+                context=urllib.request.ssl._create_unverified_context(),
+                timeout=timeout,
+            )
+
+            # Read the response content
+            logger.debug("Reading response content...")
+            response_content = response.read().decode("utf-8")
+            logger.debug("Received response: {}".format(response_content))
+
+            # Parse the XML response
+            logger.debug("Parsing XML response...")
+            root = ET.fromstring(response_content)
+            logger.debug("Root element: {}".format(root.tag))
+
+            # Extract the API key from the response
+            logger.debug("Extracting API key...")
+            api_key_element = root.find("./result/key")
+            if api_key_element is not None:
+                api_key = api_key_element.text
+                logger.debug("Retrieved API key: {}".format(api_key))
+                logger.info("Retrieved API key: {}".format(api_key))
+                return api_key
+            else:
+                logger.error("API key not found in the response.")
+
+        except urllib.error.URLError as url_error:
+            logger.error("URL error occurred: {}".format(str(url_error)))
+
+        except ET.ParseError as parse_error:
+            logger.error(
+                "XML parsing error occurred: {}".format(str(parse_error))
+            )
+
+        except Exception as e:
+            logger.error("An error occurred: {}".format(str(e)))
+
+        logger.warning(
+            "Failed to retrieve API key (attempt {})".format(attempt)
         )
-        logger.debug("API URL: {}".format(url))
 
-        # Create an HTTPS request with SSL verification disabled
-        logger.debug("Retrieving API key...")
-        request = urllib.request.Request(url)
-        response = urllib.request.urlopen(
-            request, context=urllib.request.ssl._create_unverified_context()
-        )
+        if attempt < max_attempts:
+            logger.info("Retrying in {} seconds...".format(timeout))
+            time.sleep(timeout)
 
-        # Read the response content
-        logger.debug("Reading response content...")
-        response_content = response.read().decode("utf-8")
-        logger.debug("Received response: {}".format(response_content))
-
-        # Parse the XML response
-        logger.debug("Parsing XML response...")
-        root = ET.fromstring(response_content)
-        logger.debug("Root element: {}".format(root.tag))
-
-        # Extract the API key from the response
-        logger.debug("Extracting API key...")
-        api_key_element = root.find("./result/key")
-        if api_key_element is not None:
-            api_key = api_key_element.text
-            logger.debug("Retrieved API key: {}".format(api_key))
-            logger.info("Retrieved API key: {}".format(api_key))
-            return api_key
-        else:
-            logger.error("API key not found in the response.")
-            return None
-
-    except urllib.error.URLError as url_error:
-        logger.error("URL error occurred: {}".format(str(url_error)))
-        return None
-
-    except ET.ParseError as parse_error:
-        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
-        return None
-
-    except Exception as e:
-        logger.error("An error occurred: {}".format(str(e)))
-        return None
+    logger.error(
+        "Failed to retrieve API key after {} attempts".format(max_attempts)
+    )
+    return None
 
 
 def retrieve_license(

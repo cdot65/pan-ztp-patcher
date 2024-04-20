@@ -124,7 +124,7 @@ def check_content_installed(
         url = "https://{}/api/?type=op&cmd={}".format(
             pan_hostname,
             urllib.parse.quote_plus(
-                "<request><content><upgrade><check/></upgrade></content></request>"
+                "<request><content><upgrade><info/></upgrade></content></request>"
             ),
         )
         logger.debug("API URL: {}".format(url))
@@ -151,13 +151,10 @@ def check_content_installed(
 
         # Check the response status
         if root.attrib.get("status") == "success":
-            content_updates = root.find("./result/content-updates")
+            # Use XPath to find any <entry> elements with current="yes"
+            current_entries = root.findall(".//entry[current='yes']")
 
-            # Check if there are any <entry> elements within <content-updates>
-            if (
-                content_updates is not None
-                and len(content_updates.findall("./entry")) > 0
-            ):
+            if len(current_entries) > 0:
                 logger.info("Content is installed.")
                 return True
             else:

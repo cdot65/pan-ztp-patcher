@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pan-ztp-patcher"
-version = "0.2.9"
+version = "0.2.10"
 description = "Update content version on PAN-OS firewalls"
 authors = ["Calvin Remsburg <cremsburg.dev@gmail.com>"]
 license = "Apache2.0"

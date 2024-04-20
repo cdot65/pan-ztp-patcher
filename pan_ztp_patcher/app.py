@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pan_ztp_patcher.utils import setup_logging
 from pan_ztp_patcher.ztp_patcher import (
     change_firewall_password,
+    check_content_installed,
     check_content_version,
     download_software,
     copy_content_via_scp,
@@ -16,6 +17,7 @@ from pan_ztp_patcher.ztp_patcher import (
     install_content_via_usb,
     monitor_job_status,
     private_data_reset,
+    reboot_firewall,
     retrieve_api_key,
     retrieve_license,
 )
@@ -147,6 +149,29 @@ def main():
         sys.exit(1)
 
     logger.info("API key retrieved successfully.")
+
+    # -----------------------------------------------------------------------
+    # Check to see if the device has content installed already
+    # -----------------------------------------------------------------------
+    content_installed = check_content_installed(
+        api_key=api_key,
+        pan_hostname=pan_hostname,
+    )
+
+    # If content is already installed, reboot the firewall
+    if content_installed:
+        logger.info("Content already installed, rebooting the firewall.")
+        reboot = reboot_firewall(
+            api_key=api_key,
+            pan_hostname=pan_hostname,
+        )
+
+        if reboot:
+            logger.info("Firewall rebooted successfully.")
+            sys.exit(0)
+        else:
+            logger.error("Failed to reboot the firewall.")
+            sys.exit(1)
 
     # ------------------------------------------------------------------------
     # Retrieve License Workflow

@@ -278,6 +278,7 @@ def main():
                         logger.info(
                             "Specific content installed successfully from servers."
                         )
+                        break
                     else:
                         logger.warning(
                             "Failed to install specific content from servers."
@@ -395,6 +396,10 @@ def main():
         else:
             logger.warning("Failed to reset the firewall data.")
             attempt += 1
+
+    if attempt > max_attempts:
+        logger.error("Failed to reset private data.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

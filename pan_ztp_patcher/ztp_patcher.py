@@ -946,53 +946,70 @@ def retrieve_api_key(
     logger.info("Retrieving API key...")
     logger.info("=" * 79)
 
-    try:
-        # Construct the API URL
-        url = "https://{}/api/?type=keygen&user={}&password={}".format(
-            pan_hostname, pan_username, urllib.parse.quote(pan_password_new)
+    max_attempts = 3
+    timeout = 3
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # Construct the API URL
+            url = "https://{}/api/?type=keygen&user={}&password={}".format(
+                pan_hostname, pan_username, urllib.parse.quote(pan_password_new)
+            )
+            logger.debug("API URL: {}".format(url))
+
+            # Create an HTTPS request with SSL verification disabled
+            logger.debug("Retrieving API key (attempt {})...".format(attempt))
+            request = urllib.request.Request(url)
+            response = urllib.request.urlopen(
+                request,
+                context=urllib.request.ssl._create_unverified_context(),
+                timeout=timeout,
+            )
+
+            # Read the response content
+            logger.debug("Reading response content...")
+            response_content = response.read().decode("utf-8")
+            logger.debug("Received response: {}".format(response_content))
+
+            # Parse the XML response
+            logger.debug("Parsing XML response...")
+            root = ET.fromstring(response_content)
+            logger.debug("Root element: {}".format(root.tag))
+
+            # Extract the API key from the response
+            logger.debug("Extracting API key...")
+            api_key_element = root.find("./result/key")
+            if api_key_element is not None:
+                api_key = api_key_element.text
+                logger.debug("Retrieved API key: {}".format(api_key))
+                logger.info("Retrieved API key: {}".format(api_key))
+                return api_key
+            else:
+                logger.error("API key not found in the response.")
+
+        except urllib.error.URLError as url_error:
+            logger.error("URL error occurred: {}".format(str(url_error)))
+
+        except ET.ParseError as parse_error:
+            logger.error(
+                "XML parsing error occurred: {}".format(str(parse_error))
+            )
+
+        except Exception as e:
+            logger.error("An error occurred: {}".format(str(e)))
+
+        logger.warning(
+            "Failed to retrieve API key (attempt {})".format(attempt)
         )
-        logger.debug("API URL: {}".format(url))
 
-        # Create an HTTPS request with SSL verification disabled
-        logger.debug("Retrieving API key...")
-        request = urllib.request.Request(url)
-        response = urllib.request.urlopen(
-            request, context=urllib.request.ssl._create_unverified_context()
-        )
+        if attempt < max_attempts:
+            logger.info("Retrying in {} seconds...".format(timeout))
+            time.sleep(timeout)
 
-        # Read the response content
-        logger.debug("Reading response content...")
-        response_content = response.read().decode("utf-8")
-        logger.debug("Received response: {}".format(response_content))
-
-        # Parse the XML response
-        logger.debug("Parsing XML response...")
-        root = ET.fromstring(response_content)
-        logger.debug("Root element: {}".format(root.tag))
-
-        # Extract the API key from the response
-        logger.debug("Extracting API key...")
-        api_key_element = root.find("./result/key")
-        if api_key_element is not None:
-            api_key = api_key_element.text
-            logger.debug("Retrieved API key: {}".format(api_key))
-            logger.info("Retrieved API key: {}".format(api_key))
-            return api_key
-        else:
-            logger.error("API key not found in the response.")
-            return None
-
-    except urllib.error.URLError as url_error:
-        logger.error("URL error occurred: {}".format(str(url_error)))
-        return None
-
-    except ET.ParseError as parse_error:
-        logger.error("XML parsing error occurred: {}".format(str(parse_error)))
-        return None
-
-    except Exception as e:
-        logger.error("An error occurred: {}".format(str(e)))
-        return None
+    logger.error(
+        "Failed to retrieve API key after {} attempts".format(max_attempts)
+    )
+    return None
 
 
 def retrieve_license(

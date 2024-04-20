@@ -133,7 +133,7 @@ def main():
 
     if not changed_password:
         logger.error("Failed to change the firewall password.")
-        # sys.exit(1)
+        sys.exit(1)
 
     # Retrieve the API key
     api_key = retrieve_api_key(

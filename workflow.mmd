@@ -1,0 +1,32 @@
+graph TD
+    A[Start] --> B{Parse command-line arguments}
+    B --> C{Load environment variables from .env file}
+    C --> D{Validate content_path argument}
+    D --> E{Change firewall password}
+    E --> F{Retrieve API key}
+    F --> G{Check if content is installed}
+    G --> |Content installed| H{Reboot firewall}
+    H --> |Firewall rebooted| I[End]
+    G --> |Content not installed| J{Retrieve license}
+    J --> K{Install content workflow}
+    K --> |Attempt = 1| L{Check for latest content version}
+    L --> |Content found| M{Download software version}
+    M --> |Download successful| N{Install specific content from servers}
+    N --> |Install successful| O{Break}
+    N --> |Install failed| P{Increment attempt}
+    L --> |Content not found| Q{Download software version}
+    Q --> |Download successful| R{Install specific content from servers}
+    R --> |Install successful| O{Break}
+    R --> |Install failed| P{Increment attempt}
+    K --> |Attempt > 1| S{Install latest content from servers}
+    S --> |Install successful| O{Break}
+    S --> |Install failed| T{Import content using SCP}
+    T --> |SCP successful| U{Install content via USB}
+    U --> |Install successful| O{Break}
+    U --> |Install failed| P{Increment attempt}
+    O --> V{Private data reset workflow}
+    V --> |Reset successful| W[End]
+    V --> |Reset failed| X{Increment attempt}
+    X --> |Attempt > max_attempts| Y[End]
+    P --> |Attempt <= max_attempts| K
+    P --> |Attempt > max_attempts| Z[End]
